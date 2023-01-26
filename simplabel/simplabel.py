@@ -375,6 +375,8 @@ class ImageClassifier(tk.Frame):
     def classify(self, category):
         '''Adds a directory entry with the name of the image and the label selected'''
 
+        # XXX ignore reconcile mode for now?
+        # or only if there's a mismatch in categories
         if self.reconcileMode:
 
             img = self.image_list[self.counter]
@@ -388,7 +390,15 @@ class ImageClassifier(tk.Frame):
             self.next_image()
 
         else:
-            self.labeled[self.image_list[self.counter]] = category
+            # change from a single category to a set, or remove it
+            # (toggle)
+            #self.labeled[self.image_list[self.counter]] = category
+            if self.image_list[self.counter] in self.labeled:
+                existing = set(self.labeled[self.image_list[self.counter]])
+                existing ^= set([category])
+                self.labeled[self.image_list[self.counter]] = existing
+            else:
+                self.labeled[self.image_list[self.counter]] = set([category])
             logging.info('Label {} selected for image {}'.format(category, self.image_list[self.counter]))
             if self.saved: # Reset saved status
                 self.saved = False
@@ -401,7 +411,9 @@ class ImageClassifier(tk.Frame):
                 self.refresh_all_dict()
                 self.display_image()
             else:
-                self.next_image()
+                #self.next_image()
+                # redraw instead
+                self.refresh_labels()
 
     def make_master(self):
         '''Reconcile conflicting labels and make a master dictionary'''
@@ -536,8 +548,13 @@ class ImageClassifier(tk.Frame):
 
             # Create and pack a button for each label
             self.catButton = []
+
+            # reserved 'q' for quit, 's' for save
+            # XXX limited to 33 for now
+            hotkeys = "1234567890wertyuioadfghjklzxcvbnm"
             for idx, category in enumerate(self.categories):
-                txt = category + " ({})".format(idx+1)
+                hotkey = hotkeys[idx]
+                txt = category + " ({})".format(hotkey)
                 self.catButton.append(tk.Button(self.root, text=txt, height=2, width=8, command = partial(self.classify, category)))
                 self.catButton[idx].pack(in_=self.labelFrameList[idx//4], fill = tk.X, expand = True, side = tk.LEFT)
 
@@ -672,21 +689,29 @@ class ImageClassifier(tk.Frame):
             else:
                 labelDict = {}
                 ## In normal mode, check allLabeledDict for other user's labels
-                if img in self.allLabeledDict:
-                    for (user, label) in self.allLabeledDict[img].items():
-                        ### Current user's data might not be up to date in allLabeledDict, will user self.labeled
-                        if user != self.username:
-                            if label in labelDict:
-                                labelDict[label].append(self.userColors[user])
-                            else:
-                                labelDict[label] = [self.userColors[user]]
+                # ignore other users for now
+                #if img in self.allLabeledDict:
+                #    for (user, label) in self.allLabeledDict[img].items():
+                #        ### Current user's data might not be up to date in allLabeledDict, will user self.labeled
+                #        if user != self.username:
+                #            if label in labelDict:
+                #                labelDict[label].append(self.userColors[user])
+                #            else:
+                #                labelDict[label] = [self.userColors[user]]
                 ## Get curent user's label from self.labeled
                 if img in self.labeled:
-                    label = self.labeled[img]
-                    if label in labelDict and self.userColor not in labelDict[label]:
-                        labelDict[label].append(self.userColor)
-                    elif label not in labelDict:
-                        labelDict[label] = [self.userColor]
+                    #label = self.labeled[img]
+                    #if label in labelDict and self.userColor not in labelDict[label]:
+                    #    labelDict[label].append(self.userColor)
+                    #elif label not in labelDict:
+                    #    labelDict[label] = [self.userColor]
+                    labels = self.labeled[img]
+                    print(labels)
+                    for label in labels:
+                        if label in labelDict and self.userColor not in labelDict[label]:
+                            labelDict[label].append(self.userColor)
+                        elif label not in labelDict:
+                            labelDict[label] = [self.userColor]
                 ## Finally, change the button color accordingly
                 for label in labelDict:
                     idxLabel = self.categories.index(label)
@@ -716,6 +741,60 @@ class ImageClassifier(tk.Frame):
                 logging.debug("display_image - Auto-save triggered")
                 self.saveTimestamp = time.time()
                 self.save()
+
+    def refresh_labels(self):
+        # If the counter overflows, go back to the last image
+        if self.counter > self.max_count and self.max_count > -1:
+            logging.debug("display_image - Counter overflowed")
+            self.counter = self.max_count
+            self.display_image()
+        # If there are no images to label, exit
+        elif self.max_count == 0:
+            logging.warning("No images to label")
+            self.errorClose()
+        else:
+            img = self.image_list[self.counter] # Name of current image
+
+            # Display the associated label(s) from any user as colored background for the label button
+            ## If in reconcileMode, display the chosen label in grey
+            if self.reconciledLabelsDict and img in self.reconciledLabelsDict:
+                label = self.reconciledLabelsDict[img]
+                idxLabel = self.categories.index(label)
+                self.catButton[idxLabel].config(highlightbackground='#3E4149', bg = '#3E4149')
+            else:
+                labelDict = {}
+                ## In normal mode, check allLabeledDict for other user's labels
+                # ignore other users for now
+                #if img in self.allLabeledDict:
+                #    for (user, label) in self.allLabeledDict[img].items():
+                #        ### Current user's data might not be up to date in allLabeledDict, will user self.labeled
+                #        if user != self.username:
+                #            if label in labelDict:
+                #                labelDict[label].append(self.userColors[user])
+                #            else:
+                #                labelDict[label] = [self.userColors[user]]
+                ## Get curent user's label from self.labeled
+                if img in self.labeled:
+                    #label = self.labeled[img]
+                    #if label in labelDict and self.userColor not in labelDict[label]:
+                    #    labelDict[label].append(self.userColor)
+                    #elif label not in labelDict:
+                    #    labelDict[label] = [self.userColor]
+                    labels = self.labeled[img]
+                    print(labels)
+                    for label in labels:
+                        if label in labelDict and self.userColor not in labelDict[label]:
+                            labelDict[label].append(self.userColor)
+                        elif label not in labelDict:
+                            labelDict[label] = [self.userColor]
+                ## Finally, change the button color accordingly
+                #for label in labelDict:
+                for label in self.categories:
+                    idxLabel = self.categories.index(label)
+                    if label in labelDict and len(labelDict[label]) == 1:
+                        self.catButton[idxLabel].config(highlightbackground=labelDict[label][0], bg = labelDict[label][0])
+                    else:
+                        self.catButton[idxLabel].config(highlightbackground='#3E4149', bg = '#3E4149')
 
     def responsiveCanvas(self, event):
         logging.debug("Redrawing frame1 following a size change event. New size: {}".format((event.width, event.height)))
@@ -908,8 +987,13 @@ class ImageClassifier(tk.Frame):
 
     def keypress_handler(self,e):
         try:
-            cat = int(e.char) - 1
+            print(e)
+            #print(e.char)
+            #cat = int(e.char) - 1
+            hotkeys = "1234567890wertyuioadfghjklzxcvbnm"
+            cat = hotkeys.find(e.char)
             if cat in range(len(self.categories)):
+                print(cat)
                 self.classify(self.categories[cat])
         except ValueError:
             if e.char == 's':
@@ -968,11 +1052,17 @@ class ImageClassifier(tk.Frame):
         '''Read a pickeled dictionary from file'''
         with open(file,"r") as f:
             return json.load(f)
+
+    # Credit: <https://stackoverflow.com/a/22281062>
+    def set_default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)
+        raise TypeError
     
     def dump_dict(self, dict, file):
         '''Pickle a dictionary to file'''
         with open(file, 'w') as f:
-            json.dump(dict, f)
+            json.dump(dict, f, default=self.set_default)
 
     def user_color_helper(self, username):
         '''Selects a color based on a username in a repeatable way also ensuring there are no conflicting colors if possible'''

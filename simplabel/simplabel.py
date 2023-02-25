@@ -248,7 +248,7 @@ class ImageClassifier(tk.Frame):
             self.masterButton.config(state=tk.DISABLED)
 
         # Create a textbox for the current image information
-        self.infoText = tk.Text(self.root, height=2, width=65, wrap=None)
+        self.infoText = tk.Text(self.root, height=3, width=85, wrap=None)
         self.infoText.pack(in_=self.frame0)
         self.infoText.tag_config("c", justify=tk.CENTER)
         self.infoText.tag_config("r", foreground="#8B0000")
@@ -657,20 +657,22 @@ class ImageClassifier(tk.Frame):
 
             
             # Truncate the image name to keep it short
-            if len(img) > 18:
-                if '/' in img:
-                    img_name = '../' + img.split('/')[-1].split('.')[0]
-                else:
-                    img_name = '..' + img.split('.')[0][-16:]
-            elif len(img) > 10:
-                img_name = img.split('.')[0]
-            else:
-                img_name = img
+            # if len(img) > 18:
+            #     if '/' in img:
+            #         img_name = '../' + img.split('/')[-1].split('.')[0]
+            #     else:
+            #         img_name = '..' + img.split('.')[0][-16:]
+            # elif len(img) > 10:
+            #     img_name = img.split('.')[0]
+            # else:
+            #     img_name = img
+
+            img_name = img
 
             # Edit the text information
             self.infoText.config(state=tk.NORMAL)
             self.infoText.delete('1.0', '1.end')
-            self.infoText.insert('1.0',"Image {}/{} - Filename: {}".format(self.counter+1,self.max_count+1,img_name), 'c')
+            self.infoText.insert('1.0',"Image {}/{} - File: {}".format(self.counter+1,self.max_count+1,img_name), 'c')
             self.infoText.config(state=tk.DISABLED)
 
             # Reset all button styles (colors and outline)
@@ -897,7 +899,7 @@ class ImageClassifier(tk.Frame):
         self.update_user_list()
         
         # Update the master dict by refreshing it
-        self.update_all_dict()
+        #self.update_all_dict()
 
         # Rebuild the image_list
         labeledByCurrentUser = []

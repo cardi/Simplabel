@@ -44,8 +44,9 @@ class ImageClassifier(tk.Frame):
         This dict is saved to disk by the 'Save' button
     """
 
+    # set autoRefresh to 0 to fix some oddities ---calvin 2023-05-06
     def __init__(self, parent, directory=None, categories=None, verbose=0, username=None,
-                 autoRefresh=60, bResetLock=False, bRedundant=False, *args, **kwargs):
+                 autoRefresh=0, bResetLock=False, bRedundant=False, *args, **kwargs):
 
         # Initialize frame
         tk.Frame.__init__(self, parent, *args, **kwargs)
@@ -914,7 +915,8 @@ class ImageClassifier(tk.Frame):
                 toLabel.append(img)
         
         alreadyLabeled = labeledByOtherUser + labeledByCurrentUser
-        self.counter = len(alreadyLabeled)
+        # disable setting counter to the next unlabeled image ---calvin 2023-05-06
+        #self.counter = len(alreadyLabeled)
         self.image_list =  alreadyLabeled + toLabel
 
     def previous_image(self, *args):

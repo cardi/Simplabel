@@ -945,6 +945,24 @@ class ImageClassifier(tk.Frame):
         self.counter = self.max_count
         self.display_image()
 
+    def goto_next_search(self):
+        for idx, img in enumerate(self.image_list):
+            if img not in self.labeled:
+                continue
+
+            labels = self.labeled[img]
+            found_cat = False
+            for label in labels:
+                if label.startswith('Cat-'):
+                    found_cat = True
+                    break
+
+            if not found_cat:
+                self.counter = idx
+                break
+
+        self.display_image()
+
     def goto_next_unlabeled(self):
         '''Displays the unlabeled image with the smallest index number'''
         if self.reconcileMode:
